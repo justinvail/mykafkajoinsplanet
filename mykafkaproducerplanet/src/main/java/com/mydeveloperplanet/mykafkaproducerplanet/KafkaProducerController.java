@@ -72,4 +72,62 @@ public class KafkaProducerController {
 
     }
 
+    @RequestMapping("/sendKeyedMessages/")
+    public void sendKeyedMessages() {
+
+        final Map<Integer, String> LEFT;
+        {
+            LEFT = new HashMap<>();
+            LEFT.put(1, null);
+            LEFT.put(2, "A");
+            LEFT.put(3, "B");
+            LEFT.put(4, null);
+            LEFT.put(5, "C");
+            LEFT.put(6, null);
+            LEFT.put(7, "D");
+        }
+
+        final Map<Integer, String> RIGHT;
+        {
+            RIGHT = new HashMap<>();
+            RIGHT.put(1, null);
+            RIGHT.put(2, "a");
+            RIGHT.put(3, "b");
+            RIGHT.put(4, null);
+            RIGHT.put(5, "c");
+            RIGHT.put(6, null);
+            RIGHT.put(7, null);
+            RIGHT.put(8, "d");
+        }
+
+        Properties props = new Properties();
+        props.put("bootstrap.servers", "localhost:9092");
+        props.put("acks", "all");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        Producer<String, String> producer = new KafkaProducer<>(props);
+
+        try {
+            for (int i = 0; i < 9; i++) {
+                // Every 10 seconds send a message
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {}
+
+                if (LEFT.containsKey(i + 1)) {
+                    producer.send(new ProducerRecord<String, String>("my-kafka-left-stream-topic", String.valueOf(i), LEFT.get(i + 1)));
+                }
+                if (RIGHT.containsKey(i + 1)) {
+                    producer.send(new ProducerRecord<String, String>("my-kafka-right-stream-topic", String.valueOf(i), RIGHT.get(i + 1)));
+                }
+
+            }
+        } finally {
+            producer.close();
+        }
+
+    }
+
+
 }
