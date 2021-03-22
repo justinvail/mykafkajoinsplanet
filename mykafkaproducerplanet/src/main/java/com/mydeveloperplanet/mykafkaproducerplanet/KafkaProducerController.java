@@ -6,9 +6,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 @RestController
 public class KafkaProducerController {
@@ -129,5 +127,55 @@ public class KafkaProducerController {
 
     }
 
+
+    @RequestMapping("/sendDocumentMessages/")
+    public void sendDocumentMessages() {
+
+        Properties props = new Properties();
+        props.put("bootstrap.servers", "localhost:9092");
+        props.put("acks", "all");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        Producer<String, String> producer = new KafkaProducer<>(props);
+
+        List<DocumentMetadataMessage> metadataMessages = createDocumentMetadataList();
+        metadataMessages.forEach(
+                documentMetadataMessage ->
+                        producer.send(new ProducerRecord<String, String>(
+                                "my-kafka-left-stream-topic",
+                                documentMetadataMessage.getKey(),
+                                documentMetadataMessage.getMetaData())));
+
+        List<EventMessage> eventMessages = createEventList();
+        createEventList().forEach(
+                eventMessage ->
+                        producer.send(new ProducerRecord<String, String>(
+                                "my-kafka-right-stream-topic",
+                                eventMessage.getKey(),
+                                eventMessage.getEventData())));
+
+
+    }
+
+    private List<DocumentMetadataMessage> createDocumentMetadataList(){
+        List<DocumentMetadataMessage> documentMetadataMessages = new ArrayList<>();
+        for (int i = 0; i < 25; i++) {
+            String strI = String.valueOf(i);
+            DocumentMetadataMessage documentMetadataMessage = new DocumentMetadataMessage(String.valueOf(strI), "metadata for document: "+ String.valueOf(i));
+            documentMetadataMessages.add(documentMetadataMessage);
+        }
+        return documentMetadataMessages;
+    }
+
+    private List<EventMessage>createEventList(){
+        List<EventMessage> eventMessages = new ArrayList<>();
+        for (int i = 0; i < 25; i++) {
+            String strI = String.valueOf(i);
+            EventMessage eventMessage = new EventMessage(String.valueOf(strI), "event data for document: "+ String.valueOf(i));
+            eventMessages.add(eventMessage);
+        }
+        return eventMessages;
+    }
 
 }
